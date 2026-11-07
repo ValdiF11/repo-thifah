@@ -1,0 +1,377 @@
+{
+  "venue_name": "Tech Hall",
+  "dimensions": {
+    "width": 30.0,
+    "length": 20.0,
+    "height": 6.0,
+    "unit": "meter"
+  },
+  "description": "Tata letak pameran teknologi futuristik berukuran 30x20 meter di Tech Hall, dilengkapi panggung utama presentation stage, area VIP tent, 5 booth inovasi teknologi modern, area FnB, dan gerbang masuk utama yang megah.",
+  "total_capacity": 150,
+  "items": [
+    {
+      "id": "stage-main",
+      "type": "stage",
+      "name": "Panggung Utama Tech Presentation",
+      "position": {
+        "x": 0.0,
+        "y": 1.5,
+        "z": -8.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 10.0,
+        "height": 3.0,
+        "depth": 4.0
+      },
+      "color": "#1e293b",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": true
+    },
+    {
+      "id": "speaker-tower-left",
+      "type": "speaker_tower",
+      "name": "Sound System Kiri",
+      "position": {
+        "x": -6.5,
+        "y": 2.5,
+        "z": -8.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 15.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 1.0,
+        "height": 5.0,
+        "depth": 1.0
+      },
+      "color": "#0f172a",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": true
+    },
+    {
+      "id": "speaker-tower-right",
+      "type": "speaker_tower",
+      "name": "Sound System Kanan",
+      "position": {
+        "x": 6.5,
+        "y": 2.5,
+        "z": -8.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": -15.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 1.0,
+        "height": 5.0,
+        "depth": 1.0
+      },
+      "color": "#0f172a",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": true
+    },
+    {
+      "id": "seating-main-row",
+      "type": "chair_row",
+      "name": "Area Kursi Penonton Utama",
+      "position": {
+        "x": 0.0,
+        "y": 0.5,
+        "z": -3.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 8.0,
+        "height": 1.0,
+        "depth": 3.0
+      },
+      "color": "#ffffff",
+      "is_bookable": true,
+      "ticket_tier": "Tribune/Seating",
+      "capacity": 80,
+      "price_estimate": 150000.0,
+      "is_locked": false
+    },
+    {
+      "id": "vip-tent-left",
+      "type": "tent_sarnafil",
+      "name": "VIP Lounge Tent Alpha",
+      "position": {
+        "x": -10.5,
+        "y": 1.75,
+        "z": -4.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 4.0,
+        "height": 3.5,
+        "depth": 4.0
+      },
+      "color": "#f8fafc",
+      "is_bookable": true,
+      "ticket_tier": "VIP Tent / Lounge",
+      "capacity": 15,
+      "price_estimate": 750000.0,
+      "is_locked": false
+    },
+    {
+      "id": "vip-tent-right",
+      "type": "tent_sarnafil",
+      "name": "VIP Lounge Tent Beta",
+      "position": {
+        "x": 10.5,
+        "y": 1.75,
+        "z": -4.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 4.0,
+        "height": 3.5,
+        "depth": 4.0
+      },
+      "color": "#f8fafc",
+      "is_bookable": true,
+      "ticket_tier": "VIP Tent / Lounge",
+      "capacity": 15,
+      "price_estimate": 750000.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-tech-01",
+      "type": "booth_expo",
+      "name": "Booth 1: AI & Robotics Expo",
+      "position": {
+        "x": -10.0,
+        "y": 1.25,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#06b6d4",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 8,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-tech-02",
+      "type": "booth_expo",
+      "name": "Booth 2: Cyber Security Showcase",
+      "position": {
+        "x": -5.0,
+        "y": 1.25,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#ec4899",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 8,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-tech-03",
+      "type": "booth_expo",
+      "name": "Booth 3: Cloud & IoT Solutions",
+      "position": {
+        "x": 0.0,
+        "y": 1.25,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#a855f7",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 8,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-tech-04",
+      "type": "booth_expo",
+      "name": "Booth 4: AR/VR Gaming & Metaverse",
+      "position": {
+        "x": 5.0,
+        "y": 1.25,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#f97316",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 8,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-tech-05",
+      "type": "booth_expo",
+      "name": "Booth 5: Green Tech & Smart Energy",
+      "position": {
+        "x": 10.0,
+        "y": 1.25,
+        "z": 1.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#10b981",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 8,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-fnb-01",
+      "type": "booth_fnb",
+      "name": "Tech Cafe & Coffee Station",
+      "position": {
+        "x": -9.0,
+        "y": 1.25,
+        "z": 6.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#eab308",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "booth-fnb-02",
+      "type": "booth_fnb",
+      "name": "Snack & Drink Bar",
+      "position": {
+        "x": 9.0,
+        "y": 1.25,
+        "z": 6.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 3.0
+      },
+      "color": "#eab308",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "gate-entrance-main",
+      "type": "gate_entrance",
+      "name": "Gerbang Selamat Datang Tech Hall",
+      "position": {
+        "x": 0.0,
+        "y": 1.75,
+        "z": 9.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 6.0,
+        "height": 3.5,
+        "depth": 1.5
+      },
+      "color": "#3b82f6",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": true
+    }
+  ]
+}

@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 3D Event Layout Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js and Controls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #0f172a; font-family: ui-sans-serif, system-ui, sans-serif; }
+    #canvas-container { width: 100%; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+    .floating-ui { position: absolute; z-index: 10; }
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.15); opacity: 0.15; }
+    }
+    .animate-pulse-slow { animation: pulse-slow 2.5s infinite ease-in-out; }
+  </style>
+</head>
+<body class="text-slate-800">
+
+  <!-- 3D Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- Header Toolbar -->
+  <div class="floating-ui top-4 left-4 right-4 flex justify-between items-center bg-white/95 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-200 shadow-xl">
+    <div class="flex items-center gap-3">
+      <div id="header-icon" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-500/30">
+        🏛️
+      </div>
+      <div>
+        <h1 class="font-bold text-base text-slate-900 tracking-wide">3D Event Layout Studio</h1>
+        <div class="flex items-center gap-2">
+          <p id="header-subtitle" class="text-xs text-slate-500">Perencanaan Tata Ruang Spasial (Indoor Ballroom & Outdoor)</p>
+          <span id="ai-status-badge" class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Memuat Status AI...
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Transform Controls & UNDO / REDO -->
+    <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+      <!-- Undo / Redo Buttons -->
+      <button id="btn-undo" onclick="undo()" title="Batal perubahan (Ctrl+Z)" disabled class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-400 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-1 shadow-sm">
+        ↩️ Undo <span class="text-[10px] text-slate-400 font-mono">^Z</span>
+      </button>
+      <button id="btn-redo" onclick="redo()" title="Ulangi perubahan (Ctrl+Y)" disabled class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-400 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 hover:text-slate-900 transition flex items-center gap-1 shadow-sm">
+        ↪️ Redo
+      </button>
+      <span class="h-4 w-px bg-slate-300 mx-1"></span>
+
+      <!-- Transform Mode Switcher -->
+      <button id="btn-mode-translate" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow-sm transition-all" onclick="setTransformMode('translate')">
+        ↔️ Geser
+      </button>
+      <button id="btn-mode-rotate" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all" onclick="setTransformMode('rotate')">
+        🔄 Putar
+      </button>
+
+      <span class="h-4 w-px bg-slate-300 mx-1"></span>
+      <!-- Switch Environment (Indoor Ballroom vs Outdoor Festival) -->
+      <button onclick="toggleEnvironment()" id="btn-env-toggle" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition flex items-center gap-1 shadow-sm" title="Ubah gaya ruangan: Indoor Ballroom Mewah atau Outdoor Festival">
+        <span id="env-toggle-icon">🏛️</span> <span id="env-toggle-label">Indoor Ballroom</span>
+      </button>
+
+      <!-- Kamera Sudut Pandang Presets -->
+      <span class="h-4 w-px bg-slate-300 mx-1"></span>
+      <div class="flex items-center bg-slate-200/70 p-0.5 rounded-lg border border-slate-300">
+        <button onclick="setCameraView('iso')" id="cam-btn-iso" class="px-2 py-1 text-xs font-semibold rounded bg-white text-slate-800 shadow-sm" title="Sudut Isometrik 45 Derajat">
+          📐 Isometrik
+        </button>
+        <button onclick="setCameraView('top')" id="cam-btn-top" class="px-2 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900" title="Sudut Pandang Atas Lahan (Bird's Eye)">
+          🦅 Atas
+        </button>
+        <button onclick="setCameraView('front')" id="cam-btn-front" class="px-2 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900" title="Sudut Pandang Depan Panggung">
+          🎪 Depan
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex items-center gap-3">
+      <button onclick="saveLayout()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Simpan Layout
+      </button>
+      <button onclick="exportJSON()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 transition">
+        Export JSON
+      </button>
+    </div>
+  </div>
+
+  <!-- Left Sidebar (AI Prompt & Controls) -->
+  <div class="floating-ui top-24 left-4 w-92 max-w-[370px] bg-white/95 backdrop-blur-md p-5 rounded-2xl border border-slate-200 shadow-2xl flex flex-col gap-4 max-h-[calc(100vh-120px)] overflow-y-auto">
+    
+    <div>
+      <label class="block text-xs font-bold uppercase tracking-wider text-indigo-700 mb-1.5">Minta Ide Layout ke AI</label>
+      <textarea id="prompt-input" rows="3" class="w-full bg-slate-50 text-slate-900 text-xs rounded-xl p-3 border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none resize-none transition" placeholder="Contoh: Grand Ballroom Gala Dinner 200 orang dengan meja banquet bundar, panggung pameran megah berlayar LED & podium, meja prasmanan catering, dan photo wall red carpet."></textarea>
+    </div>
+
+    <!-- Venue Settings Grid -->
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <div>
+        <label class="block text-slate-500 font-medium mb-1">Lebar Ruang (m)</label>
+        <input type="number" id="venue-width" value="34" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-semibold">
+      </div>
+      <div>
+        <label class="block text-slate-500 font-medium mb-1">Panjang Ruang (m)</label>
+        <input type="number" id="venue-length" value="26" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-900 font-semibold">
+      </div>
+    </div>
+
+    <button id="btn-generate" onclick="generateLayout()" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-amber-600 hover:from-indigo-500 hover:to-amber-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+      <span id="btn-icon">✨</span>
+      <span id="btn-text">Generate Layout dengan AI</span>
+    </button>
+
+    <!-- Info Box: Kapasitas & Tiket -->
+    <div class="bg-indigo-50/70 rounded-xl p-3.5 border border-indigo-100">
+      <div class="flex justify-between items-center text-xs mb-1.5">
+        <span class="text-slate-600 font-medium">Total Kapasitas:</span>
+        <span id="total-capacity" class="font-bold text-indigo-700 text-sm">0 Orang</span>
+      </div>
+      <div class="flex justify-between items-center text-xs">
+        <span class="text-slate-600 font-medium">Total Komponen:</span>
+        <span id="total-items" class="font-bold text-slate-800">0 Komponen</span>
+      </div>
+      <p id="venue-desc" class="mt-2 text-[11px] text-slate-600 italic line-clamp-3 leading-relaxed border-t border-indigo-200/60 pt-2"></p>
+    </div>
+
+    <!-- Quick Presets -->
+    <div>
+      <label class="block text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">Preset Pilihan Acara:</label>
+      <div class="flex flex-col gap-1.5">
+        <button onclick="applyPreset('Grand Ballroom Gala Dinner: panggung utama megah dengan layar LED raksasa dan podium pidato di Z negatif, meja bundar banquet VIP dan reguler lengkap dengan kursi banquet, meja prasmanan catering di sisi samping, photo wall red carpet, dan meja registrasi formal di dekat pintu masuk.')" class="text-left text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-900 p-2.5 rounded-xl border border-amber-200 transition">
+          🍽️ <b>Grand Ballroom Gala Dinner</b> (Indoor Mewah)
+        </button>
+        <button onclick="applyPreset('Festival dan Pameran UMKM Outdoor: panggung megah di belakang dengan barisan kursi penonton putih menghadap panggung, 2 tenda kerucut sarnafil VIP di tengah, 6 booth sponsor pameran di sisi samping, arena bermain berpagar di kiri, dan gerbang lengkung di depan.')" class="text-left text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 p-2 rounded-xl border border-slate-200 transition">
+          🎪 <b>Festival Outdoor Komplit</b> (Taman Lapangan)
+        </button>
+        <button onclick="applyPreset('Seminar Tech Conference 300 peserta di dalam ballroom hotel: panggung presentasi dengan layar LED lebar, 6 baris kursi teater, meja registrasi check-in tiket, dan coffee break snack bar.')" class="text-left text-[11px] bg-slate-50 hover:bg-slate-100 text-slate-700 p-2 rounded-xl border border-slate-200 transition">
+          🎤 <b>Tech Conference & Seminar</b> (Indoor)
+        </button>
+      </div>
+    </div>
+
+    <!-- Panduan Interaksi -->
+    <div class="text-[11px] text-slate-600 bg-slate-100 border border-slate-200 p-3 rounded-xl">
+      💡 <b>Fitur Interaktif:</b>
+      <ul class="list-disc list-inside mt-1 space-y-0.5 text-slate-700">
+        <li>Klik objek apa saja untuk menggeser posisinya di lantai.</li>
+        <li>Gunakan <b>Ctrl + Z</b> untuk Undo kapan saja.</li>
+        <li>Gunakan tombol <b>Mode: Indoor Ballroom</b> untuk beralih nuansa gedung/lapangan.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Right Inspector Panel (Properties Objek yang Dipilih) -->
+  <div id="inspector-panel" class="floating-ui bottom-4 right-4 w-80 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-2xl transition-all opacity-0 pointer-events-none">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+        Inspector Komponen
+      </h3>
+      <button onclick="deselectItem()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">&times;</button>
+    </div>
+
+    <div class="space-y-2.5 text-xs">
+      <div>
+        <label class="text-[11px] font-semibold text-slate-600">Nama Objek</label>
+        <input id="prop-name" type="text" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-1.5 text-slate-900 font-medium" onchange="updateSelectedProp('name', this.value)">
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-center">
+        <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+          <span class="text-[10px] text-slate-400 font-bold">Pos X</span>
+          <p id="prop-pos-x" class="font-mono text-indigo-600 font-bold">0.0m</p>
+        </div>
+        <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+          <span class="text-[10px] text-slate-400 font-bold">Pos Y</span>
+          <p id="prop-pos-y" class="font-mono text-indigo-600 font-bold">0.0m</p>
+        </div>
+        <div class="bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+          <span class="text-[10px] text-slate-400 font-bold">Pos Z</span>
+          <p id="prop-pos-z" class="font-mono text-indigo-600 font-bold">0.0m</p>
+        </div>
+      </div>
+
+      <!-- Quick Orientation Button for Selected Item -->
+      <button onclick="faceSelectedItemToStage()" class="w-full py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition">
+        🎯 Putar Menghadap Panggung
+      </button>
+
+      <!-- Tiketing Attributes -->
+      <div id="ticketing-props" class="border-t border-slate-200 pt-2 space-y-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-medium text-slate-600">Status Penjualan Tiket</span>
+          <span id="prop-is-bookable" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">TIKET (YA)</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-medium text-slate-600">Tier / Kategori:</span>
+          <input id="prop-tier" type="text" class="w-28 bg-slate-50 border border-slate-300 rounded p-1 text-right text-xs font-semibold" onchange="updateSelectedProp('ticket_tier', this.value)">
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-medium text-slate-600">Kapasitas Orang:</span>
+          <input id="prop-capacity" type="number" class="w-20 bg-slate-50 border border-slate-300 rounded p-1 text-right text-xs font-semibold" onchange="updateSelectedProp('capacity', parseInt(this.value)||0)">
+        </div>
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button onclick="deleteSelectedItem()" class="w-full py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 rounded-lg text-xs font-bold transition">
+          🗑️ Hapus Objek
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI GENERATION LOADING SCREEN -->
+  <div id="ai-loading-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center transition-all opacity-0 pointer-events-none duration-300">
+    <div class="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl border border-slate-100 flex flex-col items-center text-center transform scale-95 transition-all duration-300" id="ai-loading-card">
+      
+      <!-- Glowing Animated AI Orb -->
+      <div class="relative w-24 h-24 mb-5 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-amber-400 animate-pulse-slow"></div>
+        <div class="absolute inset-2 rounded-full bg-indigo-100 animate-ping opacity-20"></div>
+        <div class="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-3xl text-white">
+          🏛️
+        </div>
+      </div>
+      
+      <h3 class="text-base font-bold text-slate-900 mb-1">AI Sedang Merancang Tata Ruang 3D...</h3>
+      <p class="text-xs text-slate-500 mb-6">Menganalisis kebutuhan acara, zoning, dan sirkulasi tamu</p>
+
+      <!-- Step-by-Step Progress Indicators -->
+      <div class="w-full space-y-2.5 text-left mb-6">
+        <div id="loading-step-1" class="flex items-center gap-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-800 transition-all">
+          <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+          <span>🧠 Menganalisis konsep acara & kuota tamu...</span>
+        </div>
+        <div id="loading-step-2" class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 transition-all">
+          <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+          <span>📐 Menghitung jarak meja banquet & jalur waiter katering...</span>
+        </div>
+        <div id="loading-step-3" class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 transition-all">
+          <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+          <span>🪑 Menata meja VIP, prasmanan & photo wall red carpet...</span>
+        </div>
+        <div id="loading-step-4" class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 transition-all">
+          <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+          <span>✨ Mengonstruksi visual ballroom 3D & mapping tiket...</span>
+        </div>
+      </div>
+
+      <!-- Animated Progress Bar -->
+      <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+        <div id="loading-progress-bar" class="bg-gradient-to-r from-amber-500 to-indigo-600 h-2 rounded-full w-1/4 transition-all duration-500"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast-notify" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 opacity-0 pointer-events-none transition-all duration-200">
+    Pemberitahuan
+  </div>
+
+  <script>
+    // --- STATE VARIABLES ---
+    let currentLayout = null;
+    let scene, camera, renderer, orbitControls, transformControls;
+    let groundGroup;
+    let sceneMeshes = [];
+    let selectedMesh = null;
+    let selectedItemData = null;
+    let activeEnvironment = 'indoor'; // 'indoor' | 'outdoor'
+
+    // --- UNDO / REDO HISTORY STACK ---
+    const MAX_HISTORY = 30;
+    let undoStack = [];
+    let redoStack = [];
+
+    function pushHistory() {
+      if (!currentLayout) return;
+      undoStack.push(JSON.parse(JSON.stringify(currentLayout)));
+      if (undoStack.length > MAX_HISTORY) undoStack.shift();
+      redoStack = [];
+      updateHistoryButtons();
+    }
+
+    function undo() {
+      if (undoStack.length === 0) return;
+      const previousState = undoStack.pop();
+      redoStack.push(JSON.parse(JSON.stringify(currentLayout)));
+      renderLayout(previousState, false);
+      showToast("↩️ Aksi dibatalkan (Undo)");
+      updateHistoryButtons();
+    }
+
+    function redo() {
+      if (redoStack.length === 0) return;
+      const nextState = redoStack.pop();
+      undoStack.push(JSON.parse(JSON.stringify(currentLayout)));
+      renderLayout(nextState, false);
+      showToast("↪️ Diulangi (Redo)");
+      updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+      const btnUndo = document.getElementById('btn-undo');
+      const btnRedo = document.getElementById('btn-redo');
+      if (btnUndo) {
+        btnUndo.disabled = undoStack.length === 0;
+        btnUndo.className = undoStack.length > 0
+          ? "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition flex items-center gap-1 shadow-sm"
+          : "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-300 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-sm";
+      }
+      if (btnRedo) {
+        btnRedo.disabled = redoStack.length === 0;
+        btnRedo.className = redoStack.length > 0
+          ? "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition flex items-center gap-1 shadow-sm"
+          : "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-300 border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 shadow-sm";
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notify');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 1800);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          redo();
+        } else {
+          e.preventDefault();
+          undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    // --- THREE.JS INITIALIZATION ---
+    function initThree() {
+      const container = document.getElementById('canvas-container');
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color('#0f172a');
+      scene.fog = new THREE.FogExp2('#0f172a', 0.006);
+
+      // 2. Camera (Isometric 45-degree angle)
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 500);
+      camera.position.set(28, 34, 38);
+
+      // 3. Renderer with ACES Tone Mapping
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      container.appendChild(renderer.domElement);
+
+      // 4. Lights (Warm atmospheric indoor & accent directional)
+      const hemiLight = new THREE.HemisphereLight(0xffedd5, 0x1e1b4b, 0.7);
+      scene.add(hemiLight);
+
+      const chandelierLight = new THREE.DirectionalLight(0xfffbeb, 1.1);
+      chandelierLight.position.set(15, 35, 20);
+      chandelierLight.castShadow = true;
+      chandelierLight.shadow.mapSize.width = 2048;
+      chandelierLight.shadow.mapSize.height = 2048;
+      chandelierLight.shadow.bias = -0.0005;
+      scene.add(chandelierLight);
+
+      // Warm amber backlight on stage
+      const stageSpot = new THREE.DirectionalLight(0xf59e0b, 0.4);
+      stageSpot.position.set(-15, 20, -25);
+      scene.add(stageSpot);
+
+      // 5. OrbitControls
+      orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+      orbitControls.enableDamping = true;
+      orbitControls.dampingFactor = 0.05;
+      orbitControls.maxPolarAngle = Math.PI / 2 - 0.04;
+      orbitControls.target.set(0, 1, 0);
+
+      // 6. TransformControls (Gizmo)
+      transformControls = new THREE.TransformControls(camera, renderer.domElement);
+      transformControls.setTranslationSnap(0.5);
+      transformControls.setRotationSnap(THREE.MathUtils.degToRad(15));
+      transformControls.showY = false; // Kunci agar tidak melayang di udara
+      scene.add(transformControls);
+
+      transformControls.addEventListener('dragging-changed', function (event) {
+        orbitControls.enabled = !event.value;
+        if (event.value === true) pushHistory();
+      });
+
+      transformControls.addEventListener('change', function () {
+        if (selectedMesh && selectedItemData) {
+          selectedMesh.position.y = 0; // selalu di lantai
+          selectedItemData.position.x = parseFloat(selectedMesh.position.x.toFixed(2));
+          selectedItemData.position.y = 0.0;
+          selectedItemData.position.z = parseFloat(selectedMesh.position.z.toFixed(2));
+          
+          if (transformControls.getMode() === 'rotate') {
+            selectedItemData.rotation.y = parseFloat(THREE.MathUtils.radToDeg(selectedMesh.rotation.y).toFixed(1));
+          }
+
+          updateInspectorCoords();
+        }
+      });
+
+      // Raycasting
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      window.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.floating-ui') || e.target.closest('#ai-loading-modal')) return;
+
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const clickableMeshes = sceneMeshes.map(m => m.mesh);
+        const intersects = raycaster.intersectObjects(clickableMeshes, true);
+
+        if (intersects.length > 0) {
+          let hit = intersects[0].object;
+          while (hit.parent && !sceneMeshes.some(m => m.mesh === hit)) {
+            hit = hit.parent;
+          }
+          const found = sceneMeshes.find(m => m.mesh === hit);
+          if (found) selectItem(found);
+        } else {
+          if (!transformControls.dragging) deselectItem();
+        }
+      });
+
+      window.addEventListener('resize', onWindowResize);
+      animate();
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      orbitControls.update();
+      renderer.render(scene, camera);
+    }
+
+    function setTransformMode(mode) {
+      transformControls.setMode(mode);
+      if (mode === 'translate') {
+        transformControls.showX = true;
+        transformControls.showY = false;
+        transformControls.showZ = true;
+      } else {
+        transformControls.showX = false;
+        transformControls.showY = true;
+        transformControls.showZ = false;
+      }
+      document.getElementById('btn-mode-translate').className = mode === 'translate' 
+        ? "px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow-sm transition-all"
+        : "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+      document.getElementById('btn-mode-rotate').className = mode === 'rotate' 
+        ? "px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow-sm transition-all"
+        : "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+    }
+
+    function setCameraView(view) {
+      const btnIso = document.getElementById('cam-btn-iso');
+      const btnTop = document.getElementById('cam-btn-top');
+      const btnFront = document.getElementById('cam-btn-front');
+
+      if (btnIso) btnIso.className = "px-2 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900";
+      if (btnTop) btnTop.className = "px-2 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900";
+      if (btnFront) btnFront.className = "px-2 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900";
+
+      if (view === 'top') {
+        camera.position.set(0, 52, 14);
+        orbitControls.target.set(0, 0, -2);
+        if (btnTop) btnTop.className = "px-2 py-1 text-xs font-semibold rounded bg-white text-slate-800 shadow-sm";
+      } else if (view === 'front') {
+        camera.position.set(0, 16, 40);
+        orbitControls.target.set(0, 2, -6);
+        if (btnFront) btnFront.className = "px-2 py-1 text-xs font-semibold rounded bg-white text-slate-800 shadow-sm";
+      } else {
+        camera.position.set(28, 34, 38);
+        orbitControls.target.set(0, 1, 0);
+        if (btnIso) btnIso.className = "px-2 py-1 text-xs font-semibold rounded bg-white text-slate-800 shadow-sm";
+      }
+      orbitControls.update();
+    }
+
+    // Toggle Environment (Indoor vs Outdoor)
+    function toggleEnvironment() {
+      activeEnvironment = (activeEnvironment === 'indoor') ? 'outdoor' : 'indoor';
+      updateEnvironmentUI();
+      if (currentLayout) {
+        currentLayout.environment_type = activeEnvironment;
+        const w = currentLayout.dimensions.width;
+        const l = currentLayout.dimensions.length;
+        buildEnvironment(w, l, activeEnvironment);
+      }
+      showToast(`Switched to Mode: ${activeEnvironment.toUpperCase()}`);
+    }
+
+    function updateEnvironmentUI() {
+      const icon = document.getElementById('env-toggle-icon');
+      const label = document.getElementById('env-toggle-label');
+      const hIcon = document.getElementById('header-icon');
+      if (activeEnvironment === 'indoor') {
+        icon.innerText = '🏛️';
+        label.innerText = 'Indoor Ballroom';
+        hIcon.innerText = '🏛️';
+        hIcon.className = "w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-indigo-500/30";
+      } else {
+        icon.innerText = '🎪';
+        label.innerText = 'Outdoor Festival';
+        hIcon.innerText = '🎪';
+        hIcon.className = "w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-emerald-500/30";
+      }
+    }
+
+    // --- PROCEDURAL 3D ASSETS BUILDER ---
+
+    // 1. Panggung Megah Indoor Gala dengan Layar LED Backdrop & Podium Pidato
+    function createStageMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const h = item.dimensions.height;
+      const d = item.dimensions.depth;
+
+      // Platform panggung (Karpet Navy / Merah)
+      const platGeo = new THREE.BoxGeometry(w, 0.9, d);
+      const platMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.4 });
+      const plat = new THREE.Mesh(platGeo, platMat);
+      plat.position.y = 0.45;
+      plat.castShadow = true;
+      plat.receiveShadow = true;
+      g.add(plat);
+
+      // Gold Trim Frame di sekeliling panggung
+      const trimGeo = new THREE.BoxGeometry(w * 1.02, 0.1, d * 1.02);
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      trim.position.y = 0.9;
+      g.add(trim);
+
+      // Tangga depan tengah
+      const stepGeo = new THREE.BoxGeometry(w * 0.35, 0.35, 1.2);
+      const stepMat = new THREE.MeshStandardMaterial({ color: 0x312e81 });
+      const step = new THREE.Mesh(stepGeo, stepMat);
+      step.position.set(0, 0.175, d / 2 + 0.5);
+      g.add(step);
+
+      // Layar LED Wall Raksasa di belakang
+      const ledWallGeo = new THREE.BoxGeometry(w * 0.92, 3.4, 0.35);
+      const ledWallMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        emissive: 0x0369a1,
+        emissiveIntensity: 0.4,
+        roughness: 0.2
+      });
+      const ledWall = new THREE.Mesh(ledWallGeo, ledWallMat);
+      ledWall.position.set(0, 2.6, -d / 2 + 0.3);
+      ledWall.castShadow = true;
+      g.add(ledWall);
+
+      // Banner Header Emas / Elegan
+      const headerGeo = new THREE.BoxGeometry(w * 0.8, 0.6, 0.45);
+      const headerMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.7 });
+      const header = new THREE.Mesh(headerGeo, headerMat);
+      header.position.set(0, 4.5, -d / 2 + 0.3);
+      g.add(header);
+
+      // Podium Pidato MC / Pembicara di sisi panggung
+      const podiumGeo = new THREE.BoxGeometry(0.7, 1.15, 0.6);
+      const podiumMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.4 });
+      const podium = new THREE.Mesh(podiumGeo, podiumMat);
+      podium.position.set(-w * 0.32, 0.9 + 0.575, d / 2 - 0.7);
+      podium.castShadow = true;
+      g.add(podium);
+
+      const micGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35);
+      const micMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+      const mic = new THREE.Mesh(micGeo, micMat);
+      mic.position.set(-w * 0.32, 0.9 + 1.15 + 0.15, d / 2 - 0.7);
+      g.add(mic);
+
+      return g;
+    }
+
+    // 2. Meja Bundar Banquet Gala Dinner Lengkap dengan 8 Kursi Melingkar
+    function createRoundTableMesh(item) {
+      const g = new THREE.Group();
+      const r = (item.dimensions.width || 2.4) / 2;
+      const h = item.dimensions.height || 0.85;
+
+      const isVip = (item.ticket_tier && item.ticket_tier.toLowerCase().includes('vip')) || item.name.toLowerCase().includes('vip');
+      const clothColor = isVip ? 0xfef08a : 0xf8fafc; // Cream Gold untuk VIP, Putih Mewah untuk Reguler
+
+      // Permukaan Meja dengan Taplak
+      const tableGeo = new THREE.CylinderGeometry(r, r, 0.08, 32);
+      const tableMat = new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.4 });
+      const tableTop = new THREE.Mesh(tableGeo, tableMat);
+      tableTop.position.y = h;
+      tableTop.castShadow = true;
+      tableTop.receiveShadow = true;
+      g.add(tableTop);
+
+      // Rok Taplak Meja (Skirt) yang menjuntai ke lantai
+      const skirtGeo = new THREE.CylinderGeometry(r * 0.98, r * 1.02, h * 0.75, 32, 1, true);
+      const skirtMat = new THREE.MeshStandardMaterial({ color: clothColor, roughness: 0.6, side: THREE.DoubleSide });
+      const skirt = new THREE.Mesh(skirtGeo, skirtMat);
+      skirt.position.y = h * 0.625;
+      skirt.castShadow = true;
+      g.add(skirt);
+
+      // Centerpiece Bunga & Lilin di tengah meja
+      const vaseGeo = new THREE.CylinderGeometry(0.12, 0.08, 0.22, 12);
+      const vaseMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.5 });
+      const vase = new THREE.Mesh(vaseGeo, vaseMat);
+      vase.position.y = h + 0.11;
+      g.add(vase);
+
+      const flowerGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      const flowerMat = new THREE.MeshStandardMaterial({ color: isVip ? 0xef4444 : 0xec4899 });
+      const flower = new THREE.Mesh(flowerGeo, flowerMat);
+      flower.position.y = h + 0.28;
+      g.add(flower);
+
+      // 8 Kursi Banquet yang Melingkari Meja
+      const chairCount = item.capacity || 8;
+      const chairDistance = r + 0.42;
+
+      const seatGeo = new THREE.BoxGeometry(0.42, 0.06, 0.42);
+      const backGeo = new THREE.BoxGeometry(0.42, 0.42, 0.06);
+      const chairColor = isVip ? 0xf59e0b : 0xffffff;
+      const chairMat = new THREE.MeshStandardMaterial({ color: chairColor, roughness: 0.3 });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+
+      for (let i = 0; i < chairCount; i++) {
+        const angle = (i / chairCount) * Math.PI * 2;
+        const cx = Math.sin(angle) * chairDistance;
+        const cz = Math.cos(angle) * chairDistance;
+
+        const chairGroup = new THREE.Group();
+        chairGroup.position.set(cx, 0.35, cz);
+        // Hadapkan kursi ke tengah meja
+        chairGroup.rotation.y = angle + Math.PI;
+
+        const seat = new THREE.Mesh(seatGeo, chairMat);
+        seat.castShadow = true;
+        chairGroup.add(seat);
+
+        const back = new THREE.Mesh(backGeo, chairMat);
+        back.position.set(0, 0.24, -0.19);
+        back.castShadow = true;
+        chairGroup.add(back);
+
+        const legGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.35, 6);
+        [[-0.17, -0.17], [0.17, -0.17], [-0.17, 0.17], [0.17, 0.17]].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeo, legMat);
+          leg.position.set(lx, -0.175, lz);
+          chairGroup.add(leg);
+        });
+
+        g.add(chairGroup);
+      }
+
+      return g;
+    }
+
+    // 3. Meja Prasmanan Catering (Buffet Station)
+    function createBuffetMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width || 5.0;
+      const h = item.dimensions.height || 0.9;
+      const d = item.dimensions.depth || 1.6;
+
+      const tableGeo = new THREE.BoxGeometry(w, h, d);
+      const tableMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.6 });
+      const table = new THREE.Mesh(tableGeo, tableMat);
+      table.position.y = h / 2;
+      table.castShadow = true;
+      table.receiveShadow = true;
+      g.add(table);
+
+      const topGeo = new THREE.BoxGeometry(w * 0.98, 0.04, d * 0.98);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.y = h + 0.02;
+      g.add(top);
+
+      // Pemanas Makanan Kubah Silver (Chafing Dishes)
+      const dishGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16);
+      const lidGeo = new THREE.SphereGeometry(0.35, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const silverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.1 });
+
+      const dishCount = 4;
+      const step = (w - 1.2) / (dishCount - 1);
+      for (let i = 0; i < dishCount; i++) {
+        const dx = -w / 2 + 0.6 + (i * step);
+        const dish = new THREE.Mesh(dishGeo, silverMat);
+        dish.position.set(dx, h + 0.12, 0);
+        dish.castShadow = true;
+        g.add(dish);
+
+        const lid = new THREE.Mesh(lidGeo, silverMat);
+        lid.position.set(dx, h + 0.22, 0);
+        g.add(lid);
+      }
+
+      return g;
+    }
+
+    // 4. Photo Wall & Red Carpet Backdrop
+    function createPhotoWallMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width || 4.5;
+      const h = item.dimensions.height || 2.8;
+
+      const wallGeo = new THREE.BoxGeometry(w, h, 0.15);
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+      const wall = new THREE.Mesh(wallGeo, wallMat);
+      wall.position.y = h / 2;
+      wall.castShadow = true;
+      g.add(wall);
+
+      const bannerGeo = new THREE.BoxGeometry(w * 0.95, 0.6, 0.18);
+      const bannerMat = new THREE.MeshStandardMaterial({ color: 0xbe123c });
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.position.set(0, h - 0.35, 0);
+      g.add(banner);
+
+      // Karpet Merah di depan Photo Wall
+      const carpetL = 3.5;
+      const carpetGeo = new THREE.PlaneGeometry(w * 0.8, carpetL);
+      const carpetMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.7 });
+      const carpet = new THREE.Mesh(carpetGeo, carpetMat);
+      carpet.rotation.x = -Math.PI / 2;
+      carpet.position.set(0, 0.02, carpetL / 2);
+      carpet.receiveShadow = true;
+      g.add(carpet);
+
+      // Tiang Pembatas Antrean Emas
+      const postGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8);
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+      [-w/2 + 0.2, w/2 - 0.2].forEach(px => {
+        const post = new THREE.Mesh(postGeo, goldMat);
+        post.position.set(px, 0.5, carpetL - 0.2);
+        post.castShadow = true;
+        g.add(post);
+      });
+
+      return g;
+    }
+
+    // 5. Meja Registrasi & Penerima Tamu
+    function createRegDeskMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width || 4.0;
+      const h = item.dimensions.height || 1.1;
+      const d = item.dimensions.depth || 1.2;
+
+      const deskGeo = new THREE.BoxGeometry(w, h, d);
+      const deskMat = new THREE.MeshStandardMaterial({ color: 0x0369a1, roughness: 0.4 });
+      const desk = new THREE.Mesh(deskGeo, deskMat);
+      desk.position.y = h / 2;
+      desk.castShadow = true;
+      g.add(desk);
+
+      const topGeo = new THREE.BoxGeometry(w * 1.04, 0.06, d * 1.04);
+      const topMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.y = h + 0.03;
+      g.add(top);
+
+      const lapGeo = new THREE.BoxGeometry(0.4, 0.02, 0.3);
+      const screenGeo = new THREE.BoxGeometry(0.4, 0.28, 0.02);
+      const lapMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6 });
+
+      [-1.0, 1.0].forEach(lx => {
+        const base = new THREE.Mesh(lapGeo, lapMat);
+        base.position.set(lx, h + 0.06, 0);
+        g.add(base);
+
+        const screen = new THREE.Mesh(screenGeo, lapMat);
+        screen.position.set(lx, h + 0.18, -0.12);
+        g.add(screen);
+      });
+
+      return g;
+    }
+
+    // 6. Barisan Kursi Teater
+    function createChairsMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const d = item.dimensions.depth;
+
+      const carpetGeo = new THREE.PlaneGeometry(w, d);
+      const carpetMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
+      const carpet = new THREE.Mesh(carpetGeo, carpetMat);
+      carpet.rotation.x = -Math.PI / 2;
+      carpet.position.y = 0.02;
+      carpet.receiveShadow = true;
+      g.add(carpet);
+
+      const rows = 6;
+      const cols = 8;
+      const stepX = (w - 1.0) / (cols - 1);
+      const stepZ = (d - 1.0) / (rows - 1);
+
+      const seatGeo = new THREE.BoxGeometry(0.5, 0.06, 0.5);
+      const backGeo = new THREE.BoxGeometry(0.5, 0.45, 0.06);
+      const chairMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cx = -w / 2 + 0.5 + (c * stepX);
+          const cz = -d / 2 + 0.5 + (r * stepZ);
+
+          const chair = new THREE.Group();
+          chair.position.set(cx, 0.35, cz);
+
+          const seat = new THREE.Mesh(seatGeo, chairMat);
+          seat.castShadow = true;
+          chair.add(seat);
+
+          const back = new THREE.Mesh(backGeo, chairMat);
+          back.position.set(0, 0.25, 0.22); // Menghadap panggung (-Z)
+          back.castShadow = true;
+          chair.add(back);
+
+          g.add(chair);
+        }
+      }
+
+      return g;
+    }
+
+    // 7. Menara Audio Sound System
+    function createSpeakerMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const h = item.dimensions.height;
+      const d = item.dimensions.depth;
+
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+      const tower = new THREE.Mesh(geo, mat);
+      tower.position.y = h / 2;
+      tower.castShadow = true;
+      g.add(tower);
+
+      const grillGeo = new THREE.PlaneGeometry(w * 0.85, h * 0.85);
+      const grillMat = new THREE.MeshBasicMaterial({ color: 0x334155 });
+      const grill = new THREE.Mesh(grillGeo, grillMat);
+      grill.position.set(0, h / 2, d / 2 + 0.01);
+      g.add(grill);
+
+      return g;
+    }
+
+    // 8. Gerbang Masuk / Pintu Ganda Ballroom
+    function createGateMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const h = item.dimensions.height;
+
+      const frameGeo = new THREE.BoxGeometry(w, h, 0.3);
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+      const frame = new THREE.Mesh(frameGeo, frameMat);
+      frame.position.y = h / 2;
+      frame.castShadow = true;
+      g.add(frame);
+
+      // Pintu Ganda Kayu Mewah
+      const doorGeo = new THREE.BoxGeometry(w * 0.44, h * 0.88, 0.2);
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.3 });
+      
+      const leftDoor = new THREE.Mesh(doorGeo, doorMat);
+      leftDoor.position.set(-w * 0.23, h * 0.44, 0);
+      g.add(leftDoor);
+
+      const rightDoor = new THREE.Mesh(doorGeo, doorMat);
+      rightDoor.position.set(w * 0.23, h * 0.44, 0);
+      g.add(rightDoor);
+
+      // Header Banner
+      const bannerGeo = new THREE.BoxGeometry(w * 0.95, 0.6, 0.4);
+      const bannerMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.7 });
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.position.set(0, h + 0.3, 0);
+      g.add(banner);
+
+      return g;
+    }
+
+    // 9. Tenda Kerucut Sarnafil (Outdoor Only)
+    function createTentMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const d = item.dimensions.depth;
+      const wallH = 1.8;
+      const roofH = 1.8;
+
+      const wallGeo = new THREE.BoxGeometry(w, wallH, d);
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.4 });
+      const wall = new THREE.Mesh(wallGeo, wallMat);
+      wall.position.y = wallH / 2;
+      wall.castShadow = true;
+      g.add(wall);
+
+      const roofGeo = new THREE.ConeGeometry(w * 0.72, roofH, 4);
+      roofGeo.rotateY(Math.PI / 4);
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = wallH + (roofH / 2);
+      roof.castShadow = true;
+      g.add(roof);
+
+      return g;
+    }
+
+    // 10. Booth Expo
+    function createBoothMesh(item) {
+      const g = new THREE.Group();
+      const w = item.dimensions.width;
+      const h = item.dimensions.height;
+      const d = item.dimensions.depth;
+      const color = item.color || '#ec4899';
+
+      const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, h, 8);
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+      [[-w/2+0.1, -d/2+0.1], [w/2-0.1, -d/2+0.1], [-w/2+0.1, d/2-0.1], [w/2-0.1, d/2-0.1]].forEach(([cx, cz]) => {
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.set(cx, h / 2, cz);
+        pole.castShadow = true;
+        g.add(pole);
+      });
+
+      const roofGeo = new THREE.BoxGeometry(w, 0.3, d);
+      const roofMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = h;
+      g.add(roof);
+
+      const tableGeo = new THREE.BoxGeometry(w * 0.7, 0.85, 0.7);
+      const tableMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      const table = new THREE.Mesh(tableGeo, tableMat);
+      table.position.set(0, 0.42, d/2 - 0.5);
+      g.add(table);
+
+      return g;
+    }
+
+    function createMeshForItem(item) {
+      let obj;
+      switch (item.type) {
+        case 'stage':
+          obj = createStageMesh(item);
+          break;
+        case 'table_round':
+          obj = createRoundTableMesh(item);
+          break;
+        case 'buffet_station':
+        case 'booth_fnb':
+          obj = (activeEnvironment === 'indoor') ? createBuffetMesh(item) : createBoothMesh(item);
+          break;
+        case 'photo_wall':
+          obj = createPhotoWallMesh(item);
+          break;
+        case 'registration_desk':
+          obj = createRegDeskMesh(item);
+          break;
+        case 'chair_row':
+          obj = createChairsMesh(item);
+          break;
+        case 'speaker_tower':
+          obj = createSpeakerMesh(item);
+          break;
+        case 'gate_entrance':
+          obj = createGateMesh(item);
+          break;
+        case 'tent_sarnafil':
+          obj = (activeEnvironment === 'indoor') ? createBuffetMesh(item) : createTentMesh(item);
+          break;
+        case 'booth_expo':
+          obj = createBoothMesh(item);
+          break;
+        default:
+          const geo = new THREE.BoxGeometry(item.dimensions.width, item.dimensions.height, item.dimensions.depth);
+          const mat = new THREE.MeshStandardMaterial({ color: item.color || 0x64748b });
+          const m = new THREE.Mesh(geo, mat);
+          m.position.y = item.dimensions.height / 2;
+          m.castShadow = true;
+          obj = new THREE.Group();
+          obj.add(m);
+      }
+
+      // KUNCI: Menapak di lantai tanah/karpet Y = 0
+      obj.position.set(item.position.x, 0, item.position.z);
+      if (item.rotation) {
+        obj.rotation.set(
+          THREE.MathUtils.degToRad(item.rotation.x || 0),
+          THREE.MathUtils.degToRad(item.rotation.y || 0),
+          THREE.MathUtils.degToRad(item.rotation.z || 0)
+        );
+      }
+
+      return obj;
+    }
+
+    // --- ENVIRONMENT BUILDER (INDOOR BALLROOM VS OUTDOOR FESTIVAL) ---
+    function buildEnvironment(w, l, envType = 'indoor') {
+      if (groundGroup) scene.remove(groundGroup);
+      groundGroup = new THREE.Group();
+
+      const isIndoor = (envType === 'indoor');
+
+      if (isIndoor) {
+        // === INDOOR LUXURY GRAND BALLROOM ===
+        scene.background = new THREE.Color('#0f172a');
+        scene.fog = new THREE.FogExp2('#0f172a', 0.005);
+
+        // 1. Karpet Mewah Ballroom (Royal Navy & Gold Accent)
+        const carpetGeo = new THREE.PlaneGeometry(w, l);
+        const carpetMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.85 });
+        const carpet = new THREE.Mesh(carpetGeo, carpetMat);
+        carpet.rotation.x = -Math.PI / 2;
+        carpet.position.y = 0;
+        carpet.receiveShadow = true;
+        groundGroup.add(carpet);
+
+        // Garis Pembatas Karpet Emas
+        const goldBorderGeo = new THREE.EdgesGeometry(carpetGeo);
+        const goldBorder = new THREE.LineSegments(goldBorderGeo, new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 3 }));
+        goldBorder.rotation.x = -Math.PI / 2;
+        goldBorder.position.y = 0.01;
+        groundGroup.add(goldBorder);
+
+        // 2. Dinding Arsitektural Ballroom
+        const wallH = 6.0;
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+
+        // Dinding Belakang
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, 0.4), wallMat);
+        backWall.position.set(0, wallH / 2, -l / 2 - 0.2);
+        backWall.receiveShadow = true;
+        groundGroup.add(backWall);
+
+        // Dinding Depan
+        const frontWall = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, 0.4), wallMat);
+        frontWall.position.set(0, wallH / 2, l / 2 + 0.2);
+        frontWall.receiveShadow = true;
+        groundGroup.add(frontWall);
+
+        // Dinding Kiri & Kanan
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, wallH, l), wallMat);
+        leftWall.position.set(-w / 2 - 0.2, wallH / 2, 0);
+        leftWall.receiveShadow = true;
+        groundGroup.add(leftWall);
+
+        const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, wallH, l), wallMat);
+        rightWall.position.set(w / 2 + 0.2, wallH / 2, 0);
+        rightWall.receiveShadow = true;
+        groundGroup.add(rightWall);
+
+        // Lampu Dinding Emas Hangat (Wall Sconces)
+        const sconceGeo = new THREE.BoxGeometry(0.25, 0.55, 0.25);
+        const sconceMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.9 });
+
+        for (let z = -l / 2 + 5; z <= l / 2 - 5; z += 7) {
+          const sLeft = new THREE.Mesh(sconceGeo, sconceMat);
+          sLeft.position.set(-w / 2 + 0.05, 3.2, z);
+          groundGroup.add(sLeft);
+
+          const sRight = new THREE.Mesh(sconceGeo, sconceMat);
+          sRight.position.set(w / 2 - 0.05, 3.2, z);
+          groundGroup.add(sRight);
+        }
+
+      } else {
+        // === OUTDOOR FESTIVAL ENVIRONMENT ===
+        scene.background = new THREE.Color('#d1d5db');
+        scene.fog = new THREE.FogExp2('#d1d5db', 0.008);
+
+        // Rumput Hijau Lapangan
+        const lawnGeo = new THREE.PlaneGeometry(w, l);
+        const lawnMat = new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.8 });
+        const lawn = new THREE.Mesh(lawnGeo, lawnMat);
+        lawn.rotation.x = -Math.PI / 2;
+        lawn.position.y = 0;
+        lawn.receiveShadow = true;
+        groundGroup.add(lawn);
+
+        // Jalan Aspal Keliling
+        const roadW = w + 10;
+        const roadL = l + 10;
+        const roadGeo = new THREE.PlaneGeometry(roadW, roadL);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.9 });
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        road.position.y = -0.05;
+        road.receiveShadow = true;
+        groundGroup.add(road);
+
+        // Pohon Keliling
+        const trunkGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.6, 8);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
+        const foliageGeo = new THREE.ConeGeometry(1.2, 2.5, 8);
+        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
+
+        function addTree(x, z) {
+          const tree = new THREE.Group();
+          tree.position.set(x, 0, z);
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          trunk.position.y = 0.8;
+          tree.add(trunk);
+          const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+          foliage.position.y = 2.2;
+          tree.add(foliage);
+          groundGroup.add(tree);
+        }
+
+        for (let z = -l / 2 - 2; z <= l / 2 + 2; z += 5) {
+          addTree(-w / 2 - 2.5, z);
+          addTree(w / 2 + 2.5, z);
+        }
+        for (let x = -w / 2; x <= w / 2; x += 5) {
+          addTree(x, -l / 2 - 2.5);
+        }
+      }
+
+      scene.add(groundGroup);
+    }
+
+    // --- RECONSTRUCTION LOGIC ---
+    function renderLayout(layout, shouldSaveHistory = true) {
+      if (shouldSaveHistory && currentLayout) pushHistory();
+      currentLayout = layout;
+
+      sceneMeshes.forEach(sm => scene.remove(sm.mesh));
+      sceneMeshes = [];
+      deselectItem();
+
+      // Cek apakah layout indoor atau outdoor
+      activeEnvironment = layout.environment_type || 'indoor';
+      updateEnvironmentUI();
+
+      const w = layout.dimensions.width;
+      const l = layout.dimensions.length;
+      buildEnvironment(w, l, activeEnvironment);
+
+      layout.items.forEach(item => {
+        const mesh = createMeshForItem(item);
+        scene.add(mesh);
+        sceneMeshes.push({ mesh, itemData: item });
+      });
+
+      document.getElementById('total-capacity').innerText = `${layout.total_capacity || 0} Orang`;
+      document.getElementById('total-items').innerText = `${layout.items.length} Komponen`;
+      document.getElementById('venue-desc').innerText = layout.description || 'Tata letak berhasil direkonstruksi.';
+      updateHistoryButtons();
+    }
+
+    function faceSelectedItemToStage() {
+      if (!selectedMesh || !selectedItemData || !currentLayout) return;
+      const stage = currentLayout.items.find(i => i.type === 'stage');
+      if (!stage) {
+        alert('Panggung tidak ditemukan.');
+        return;
+      }
+
+      pushHistory();
+      const dx = stage.position.x - selectedItemData.position.x;
+      const dz = stage.position.z - selectedItemData.position.z;
+      const targetAngleRad = Math.atan2(dx, dz) + Math.PI;
+      const targetAngleDeg = THREE.MathUtils.radToDeg(targetAngleRad);
+
+      if (!selectedItemData.rotation) selectedItemData.rotation = { x: 0, y: 0, z: 0 };
+      selectedItemData.rotation.y = Math.round(targetAngleDeg);
+      selectedMesh.rotation.y = targetAngleRad;
+      showToast(`🎯 '${selectedItemData.name}' kini menghadap ke panggung.`);
+    }
+
+    // --- SELECTION & INSPECTOR ---
+    function selectItem(entry) {
+      selectedMesh = entry.mesh;
+      selectedItemData = entry.itemData;
+      transformControls.attach(selectedMesh);
+
+      const panel = document.getElementById('inspector-panel');
+      panel.classList.remove('opacity-0', 'pointer-events-none');
+
+      document.getElementById('prop-name').value = selectedItemData.name;
+      document.getElementById('prop-tier').value = selectedItemData.ticket_tier || '-';
+      document.getElementById('prop-capacity').value = selectedItemData.capacity || 0;
+      document.getElementById('prop-is-bookable').innerText = selectedItemData.is_bookable ? 'TIKET (YA)' : 'NON-TIKET';
+      document.getElementById('prop-is-bookable').className = selectedItemData.is_bookable 
+        ? 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700'
+        : 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600';
+
+      updateInspectorCoords();
+    }
+
+    function deselectItem() {
+      transformControls.detach();
+      selectedMesh = null;
+      selectedItemData = null;
+      const panel = document.getElementById('inspector-panel');
+      panel.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function updateInspectorCoords() {
+      if (!selectedMesh) return;
+      document.getElementById('prop-pos-x').innerText = selectedMesh.position.x.toFixed(1) + 'm';
+      document.getElementById('prop-pos-y').innerText = selectedMesh.position.y.toFixed(1) + 'm';
+      document.getElementById('prop-pos-z').innerText = selectedMesh.position.z.toFixed(1) + 'm';
+    }
+
+    function updateSelectedProp(prop, value) {
+      if (!selectedItemData) return;
+      pushHistory();
+      selectedItemData[prop] = value;
+      if (prop === 'capacity' && currentLayout) {
+        currentLayout.total_capacity = currentLayout.items.reduce((acc, i) => acc + (i.is_bookable ? (i.capacity || 0) : 0), 0);
+        document.getElementById('total-capacity').innerText = `${currentLayout.total_capacity} Orang`;
+      }
+    }
+
+    function deleteSelectedItem() {
+      if (!selectedMesh || !selectedItemData) return;
+      pushHistory();
+      scene.remove(selectedMesh);
+      sceneMeshes = sceneMeshes.filter(sm => sm.mesh !== selectedMesh);
+      currentLayout.items = currentLayout.items.filter(item => item.id !== selectedItemData.id);
+      deselectItem();
+      document.getElementById('total-items').innerText = `${currentLayout.items.length} Komponen`;
+      showToast("🗑️ Komponen dihapus");
+    }
+
+    // --- AI LOADING UI ANIMATION HELPER ---
+    let loadingInterval = null;
+
+    function showAiLoading() {
+      const modal = document.getElementById('ai-loading-modal');
+      const card = document.getElementById('ai-loading-card');
+      const bar = document.getElementById('loading-progress-bar');
+      
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      card.classList.remove('scale-95');
+      card.classList.add('scale-100');
+
+      for (let s = 1; s <= 4; s++) {
+        const stepEl = document.getElementById(`loading-step-${s}`);
+        stepEl.className = s === 1 
+          ? "flex items-center gap-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-800 transition-all"
+          : "flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 transition-all";
+      }
+      bar.style.width = '20%';
+
+      let curStep = 1;
+      loadingInterval = setInterval(() => {
+        curStep++;
+        if (curStep <= 4) {
+          const prevEl = document.getElementById(`loading-step-${curStep-1}`);
+          if (prevEl) {
+            prevEl.className = "flex items-center gap-3 p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 transition-all";
+            prevEl.querySelector('span:first-child').className = "w-2 h-2 rounded-full bg-emerald-500";
+          }
+          const el = document.getElementById(`loading-step-${curStep}`);
+          if (el) {
+            el.className = "flex items-center gap-3 p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-800 transition-all";
+            el.querySelector('span:first-child').className = "w-2 h-2 rounded-full bg-indigo-500 animate-pulse";
+          }
+          bar.style.width = `${curStep * 24}%`;
+        }
+      }, 750);
+    }
+
+    function hideAiLoading() {
+      if (loadingInterval) clearInterval(loadingInterval);
+      const bar = document.getElementById('loading-progress-bar');
+      bar.style.width = '100%';
+
+      setTimeout(() => {
+        const modal = document.getElementById('ai-loading-modal');
+        const card = document.getElementById('ai-loading-card');
+        card.classList.remove('scale-100');
+        card.classList.add('scale-95');
+        modal.classList.add('opacity-0', 'pointer-events-none');
+      }, 250);
+    }
+
+    // --- API CALLS ---
+    async function generateLayout() {
+      const prompt = document.getElementById('prompt-input').value.trim();
+      if (!prompt) {
+        alert('Silakan tulis kebutuhan acara Anda terlebih dahulu.');
+        return;
+      }
+
+      const w = parseFloat(document.getElementById('venue-width').value) || 34;
+      const l = parseFloat(document.getElementById('venue-length').value) || 26;
+
+      const btn = document.getElementById('btn-generate');
+      const btnText = document.getElementById('btn-text');
+      const btnIcon = document.getElementById('btn-icon');
+
+      btn.disabled = true;
+      btnText.innerText = "Merancang Tata Ruang 3D...";
+      btnIcon.innerText = "⏳";
+      showAiLoading();
+
+      try {
+        const response = await fetch('/api/layout/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            venue_name: (activeEnvironment === 'indoor') ? "Grand Ballroom" : "Festival Grounds",
+            venue_width: w,
+            venue_length: l,
+            environment_type: activeEnvironment
+          })
+        });
+
+        if (!response.ok) throw new Error('Gagal memproses layout dari server.');
+
+        const layout = await response.json();
+        renderLayout(layout, true);
+        showToast("✨ Layout 3D berhasil dirancang!");
+      } catch (err) {
+        console.error(err);
+        alert('Kendala saat generate layout: ' + err.message);
+      } finally {
+        hideAiLoading();
+        btn.disabled = false;
+        btnText.innerText = "Generate Layout dengan AI";
+        btnIcon.innerText = "✨";
+      }
+    }
+
+    async function saveLayout() {
+      if (!currentLayout) {
+        alert('Belum ada layout yang aktif untuk disimpan.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/layout/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ layout: currentLayout })
+        });
+        const res = await response.json();
+        alert('✅ Layout berhasil disimpan ke Backend!\nID: ' + res.layout_id + '\nKapasitas: ' + res.summary.total_capacity + ' Orang\nSiap diintegrasikan ke modul pemesanan tiket.');
+      } catch (err) {
+        alert('Gagal menyimpan layout: ' + err.message);
+      }
+    }
+
+    function exportJSON() {
+      if (!currentLayout) {
+        alert('Belum ada layout yang aktif.');
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentLayout, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `event-layout-${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function applyPreset(text) {
+      document.getElementById('prompt-input').value = text;
+      // Auto-detect environment from preset text
+      if (text.toLowerCase().includes('ballroom') || text.toLowerCase().includes('gala') || text.toLowerCase().includes('indoor')) {
+        activeEnvironment = 'indoor';
+      } else {
+        activeEnvironment = 'outdoor';
+      }
+      updateEnvironmentUI();
+      generateLayout();
+    }
+
+    async function checkAiHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        const badge = document.getElementById('ai-status-badge');
+        if (data.gemini_configured) {
+          badge.className = "px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1.5";
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Gemini AI Live';
+        } else {
+          badge.className = "px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1.5";
+          badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Mode Fallback (Offline)';
+        }
+      } catch (e) {
+        console.warn('Health check error:', e);
+      }
+    }
+
+    window.onload = () => {
+      initThree();
+      checkAiHealth();
+      // Default ke Gala Dinner Ballroom Mewah
+      applyPreset('Grand Ballroom Gala Dinner: panggung utama megah dengan layar LED raksasa dan podium pidato di Z negatif, meja bundar banquet VIP dan reguler lengkap dengan kursi banquet, meja prasmanan catering di sisi samping, photo wall red carpet, dan meja registrasi formal di dekat pintu masuk.');
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+{
+  "venue_name": "Event Hall",
+  "dimensions": {
+    "width": 27.0,
+    "length": 20.0,
+    "height": 6.0,
+    "unit": "meters"
+  },
+  "description": "Rekomendasi layout otomatis untuk 'Gala Dinner dan Penghargaan, panggung mini, 8 meja bundar VIP lengkap dengan kursi jamuan makan malam.'. Dilengkapi panggung utama, area penonton tertata, booth pendukung, dan akses jalur keluar masuk.",
+  "total_capacity": 75,
+  "items": [
+    {
+      "id": "stage-main",
+      "type": "stage",
+      "name": "Panggung Utama",
+      "position": {
+        "x": 0.0,
+        "y": 0.6,
+        "z": -7.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 12.0,
+        "height": 1.2,
+        "depth": 4.5
+      },
+      "color": "#1e293b",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": true
+    },
+    {
+      "id": "speaker-left",
+      "type": "speaker_tower",
+      "name": "Audio Tower Kiri",
+      "position": {
+        "x": -9.45,
+        "y": 1.75,
+        "z": -7.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 1.2,
+        "height": 3.5,
+        "depth": 1.2
+      },
+      "color": "#0f172a",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "speaker-right",
+      "type": "speaker_tower",
+      "name": "Audio Tower Kanan",
+      "position": {
+        "x": 9.45,
+        "y": 1.75,
+        "z": -7.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 1.2,
+        "height": 3.5,
+        "depth": 1.2
+      },
+      "color": "#0f172a",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "vip-table-01",
+      "type": "table_round",
+      "name": "Meja VIP #1",
+      "position": {
+        "x": -5.0,
+        "y": 0.4,
+        "z": -2.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 2.0,
+        "height": 0.8,
+        "depth": 2.0
+      },
+      "color": "#f59e0b",
+      "is_bookable": true,
+      "ticket_tier": "VIP",
+      "capacity": 5,
+      "price_estimate": 750000.0,
+      "is_locked": false
+    },
+    {
+      "id": "vip-table-02",
+      "type": "table_round",
+      "name": "Meja VIP #2",
+      "position": {
+        "x": 0.0,
+        "y": 0.4,
+        "z": -2.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 2.0,
+        "height": 0.8,
+        "depth": 2.0
+      },
+      "color": "#f59e0b",
+      "is_bookable": true,
+      "ticket_tier": "VIP",
+      "capacity": 5,
+      "price_estimate": 750000.0,
+      "is_locked": false
+    },
+    {
+      "id": "vip-table-03",
+      "type": "table_round",
+      "name": "Meja VIP #3",
+      "position": {
+        "x": 5.0,
+        "y": 0.4,
+        "z": -2.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 2.0,
+        "height": 0.8,
+        "depth": 2.0
+      },
+      "color": "#f59e0b",
+      "is_bookable": true,
+      "ticket_tier": "VIP",
+      "capacity": 5,
+      "price_estimate": 750000.0,
+      "is_locked": false
+    },
+    {
+      "id": "chair-row-02",
+      "type": "chair_row",
+      "name": "Baris Kursi Reguler #2",
+      "position": {
+        "x": 0.0,
+        "y": 0.42,
+        "z": 3.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 16.0,
+        "height": 0.85,
+        "depth": 1.2
+      },
+      "color": "#0284c7",
+      "is_bookable": true,
+      "ticket_tier": "Regular",
+      "capacity": 20,
+      "price_estimate": 250000.0,
+      "is_locked": false
+    },
+    {
+      "id": "chair-row-03",
+      "type": "chair_row",
+      "name": "Baris Kursi Reguler #3",
+      "position": {
+        "x": 0.0,
+        "y": 0.42,
+        "z": 5.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 16.0,
+        "height": 0.85,
+        "depth": 1.2
+      },
+      "color": "#0284c7",
+      "is_bookable": true,
+      "ticket_tier": "Regular",
+      "capacity": 20,
+      "price_estimate": 250000.0,
+      "is_locked": false
+    },
+    {
+      "id": "fnb-stand-1",
+      "type": "booth_fnb",
+      "name": "Stand Makanan & Minuman",
+      "position": {
+        "x": -11.0,
+        "y": 1.25,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 3.0,
+        "height": 2.5,
+        "depth": 2.5
+      },
+      "color": "#ec4899",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    },
+    {
+      "id": "gate-entry",
+      "type": "gate_entrance",
+      "name": "Pintu Masuk & Scan Tiket",
+      "position": {
+        "x": 0.0,
+        "y": 1.4,
+        "z": 8.5
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "dimensions": {
+        "width": 4.0,
+        "height": 2.8,
+        "depth": 1.0
+      },
+      "color": "#e11d48",
+      "is_bookable": false,
+      "ticket_tier": null,
+      "capacity": 0,
+      "price_estimate": 0.0,
+      "is_locked": false
+    }
+  ]
+}
